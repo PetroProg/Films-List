@@ -15,6 +15,10 @@ dist/
 films-server
 *.exe
 
+# CSV exports and sensitive data
+*.csv
+!seed.example.csv
+
 # OS and IDE files
 .DS_Store
 Thumbs.db

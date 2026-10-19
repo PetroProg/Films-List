@@ -28,7 +28,8 @@ RUN apk add --no-cache ca-certificates tzdata \
 
 COPY --from=frontend-builder /app/frontend/dist /app/frontend/dist
 COPY --from=backend-builder /app/films-server /app/films-server
-COPY seed.csv /app/seed.csv
+COPY seed.example.csv /app/seed.example.csv
+COPY seed.cs[v] /app/
 
 ENV PORT=7070 \
     DB_PATH=/data/films.db \
