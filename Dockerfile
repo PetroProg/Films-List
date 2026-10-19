@@ -15,10 +15,8 @@ WORKDIR /app
 ENV CGO_ENABLED=0 \
     GOOS=linux
 
-COPY backend/go.mod ./
-RUN go mod download || true
-
 COPY backend/ ./
+RUN go mod tidy
 RUN go build -ldflags="-s -w" -o /app/films-server ./cmd/server
 
 # Stage 3: Minimal Runtime

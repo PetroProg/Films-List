@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/csv"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
