@@ -1,0 +1,22 @@
+# Data and SQLite databases
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Node & Frontend
+node_modules/
+dist/
+.vite/
+*.log
+
+# Go binaries
+films-server
+*.exe
+
+# OS and IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

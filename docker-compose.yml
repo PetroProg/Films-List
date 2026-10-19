@@ -1,0 +1,21 @@
+services:
+  films-list:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: films-list
+    restart: unless-stopped
+    ports:
+      - "7070:7070"
+    environment:
+      - PORT=7070
+      - DB_PATH=/data/films.db
+      - SEED_CSV=/app/seed.csv
+      - STATIC_DIR=/app/frontend/dist
+    volumes:
+      - ./data:/data
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 80M

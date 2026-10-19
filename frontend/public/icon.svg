@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#cba6f7" />
+      <stop offset="100%" stop-color="#b4befe" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="#181825" />
+  <rect x="32" y="32" width="448" height="448" rx="96" fill="#1e1e2e" stroke="#313244" stroke-width="8" />
+  
+  <!-- Film reel / clapperboard shape -->
+  <g transform="translate(106, 106)">
+    <!-- Clapper top -->
+    <path d="M 0 60 L 300 0 L 300 45 L 0 105 Z" fill="url(#grad)" />
+    <!-- Clapper stripes -->
+    <polygon points="40,52 65,47 50,95 25,100" fill="#181825" />
+    <polygon points="110,38 135,33 120,81 95,86" fill="#181825" />
+    <polygon points="180,24 205,19 190,67 165,72" fill="#181825" />
+    <polygon points="250,10 275,5 260,53 235,58" fill="#181825" />
+
+    <!-- Clapper body -->
+    <rect x="0" y="115" width="300" height="185" rx="16" fill="#313244" stroke="url(#grad)" stroke-width="6" />
+    <!-- Play symbol inside clapper -->
+    <polygon points="130,175 190,207 130,240" fill="url(#grad)" />
+    <!-- Film stars -->
+    <circle cx="50" cy="160" r="10" fill="#fab387" />
+    <circle cx="85" cy="160" r="10" fill="#f9e2af" />
+    <circle cx="120" cy="160" r="10" fill="#a6e3a1" />
+  </g>
+</svg>
