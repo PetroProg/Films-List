@@ -14,6 +14,7 @@ import { FilmCard } from './components/FilmCard';
 import { FilmRow } from './components/FilmRow';
 import { FilmModal } from './components/FilmModal';
 import { RandomModal } from './components/RandomModal';
+import { SplashScreen } from './components/SplashScreen';
 import { Film as FilmIcon, Plus, AlertCircle, RefreshCw } from 'lucide-react';
 
 export default function App() {
@@ -26,6 +27,7 @@ export default function App() {
     avg_rating: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Filters & Controls
@@ -58,6 +60,7 @@ export default function App() {
       setError(err.message || 'Ошибка загрузки данных');
     } finally {
       setLoading(false);
+      setInitialLoading(false);
     }
   }, [status, search, sort]);
 
@@ -146,6 +149,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-cat-mantle text-cat-text flex flex-col">
+      {/* Cinematic Splash Screen with Projector Beam */}
+      <SplashScreen isLoading={initialLoading} />
+
       {/* Toast Notification */}
       {toast && (
         <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom duration-300">
@@ -202,13 +208,13 @@ export default function App() {
           </div>
         )}
 
-        {/* Loading Spinner */}
-        {loading && films.length === 0 ? (
+        {/* Loading Spinner for internal filters */}
+        {loading && films.length === 0 && !initialLoading ? (
           <div className="py-24 flex flex-col items-center justify-center gap-3">
             <div className="w-9 h-9 border-2 border-cat-mauve border-t-transparent rounded-full animate-spin" />
             <p className="text-xs text-cat-subtext0">Загрузка коллекции...</p>
           </div>
-        ) : films.length === 0 ? (
+        ) : films.length === 0 && !initialLoading ? (
           /* Empty State */
           <div className="py-20 text-center rounded-3xl bg-cat-surface0/40 border border-cat-surface1/60 p-8 max-w-md mx-auto">
             <div className="w-14 h-14 rounded-2xl bg-cat-surface0 border border-cat-surface1 flex items-center justify-center text-cat-mauve mx-auto mb-4">

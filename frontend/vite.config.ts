@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'icon.svg'],
+      includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'icon.svg', 'splash.jpg'],
       manifest: {
         name: 'Films List',
         short_name: 'Films',

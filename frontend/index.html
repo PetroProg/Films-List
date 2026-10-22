@@ -9,10 +9,22 @@
     <meta name="apple-mobile-web-app-title" content="Films" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="apple-touch-startup-image" href="/splash.jpg" />
+    <link rel="preload" as="image" href="/splash.jpg" />
     <title>Films List</title>
   </head>
   <body class="bg-cat-mantle text-cat-text min-h-screen antialiased selection:bg-cat-mauve selection:text-cat-crust">
-    <div id="root"></div>
+    <div id="root">
+      <!-- Instant pre-react splash background to eliminate blank screens -->
+      <div style="position:fixed;inset:0;background:#11111b;display:flex;align-items:center;justify-content:center;z-index:9999;">
+        <img src="/splash.jpg" alt="Splash" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.9;" />
+        <div style="position:absolute;inset:0;background:linear-gradient(to top, #11111b, rgba(17,17,27,0.5), #11111b);"></div>
+        <div style="position:relative;z-index:1;text-align:center;font-family:-apple-system,BlinkMacSystemFont,sans-serif;">
+          <h1 style="color:#cdd6f4;font-size:32px;font-weight:800;letter-spacing:-0.5px;margin:0 0 8px 0;">Films List</h1>
+          <p style="color:#a6adc8;font-size:14px;margin:0;">Загрузка...</p>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
