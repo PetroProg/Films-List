@@ -169,7 +169,6 @@ export default function App() {
 
       {/* Main Header */}
       <Header
-        stats={stats}
         onAddClick={() => {
           setEditingFilm(null);
           setIsModalOpen(true);
