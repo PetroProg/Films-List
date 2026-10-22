@@ -4,6 +4,7 @@ import { Film } from '../types';
 
 interface FilmRowProps {
   film: Film;
+  onSelect: (film: Film) => void;
   onEdit: (film: Film) => void;
   onDelete: (id: number) => void;
   onToggleStatus: (id: number, currentStatus: string) => void;
@@ -12,6 +13,7 @@ interface FilmRowProps {
 
 export const FilmRow: React.FC<FilmRowProps> = ({
   film,
+  onSelect,
   onEdit,
   onDelete,
   onToggleStatus,
@@ -22,7 +24,10 @@ export const FilmRow: React.FC<FilmRowProps> = ({
       case 'watched':
         return (
           <button
-            onClick={() => onToggleStatus(film.id, film.status)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleStatus(film.id, film.status);
+            }}
             title="Просмотрено (нажмите, чтобы изменить)"
             className="p-1.5 rounded-lg text-cat-green bg-cat-green/10 hover:bg-cat-green/20 transition-all"
           >
@@ -32,7 +37,10 @@ export const FilmRow: React.FC<FilmRowProps> = ({
       case 'dropped':
         return (
           <button
-            onClick={() => onToggleStatus(film.id, film.status)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleStatus(film.id, film.status);
+            }}
             title="Брошено (нажмите, чтобы изменить)"
             className="p-1.5 rounded-lg text-cat-red bg-cat-red/10 hover:bg-cat-red/20 transition-all"
           >
@@ -42,7 +50,10 @@ export const FilmRow: React.FC<FilmRowProps> = ({
       default:
         return (
           <button
-            onClick={() => onToggleStatus(film.id, film.status)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleStatus(film.id, film.status);
+            }}
             title="В планах (нажмите, чтобы отметить просмотренным)"
             className="p-1.5 rounded-lg text-cat-peach bg-cat-peach/10 hover:bg-cat-peach/20 transition-all"
           >
@@ -53,8 +64,10 @@ export const FilmRow: React.FC<FilmRowProps> = ({
   };
 
   return (
-    <div className="group flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-cat-surface0/50 hover:bg-cat-surface0 border border-cat-surface1/60 hover:border-cat-surface2 transition-all">
-      
+    <div
+      onClick={() => onSelect(film)}
+      className="group flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-cat-surface0/50 hover:bg-cat-surface0/90 border border-cat-surface1/60 hover:border-cat-mauve/50 transition-all cursor-pointer active:scale-[0.995] select-none"
+    >
       {/* Left: Status icon & Title + Year */}
       <div className="flex items-center gap-3 min-w-0 flex-1">
         {getStatusIcon()}
@@ -87,7 +100,10 @@ export const FilmRow: React.FC<FilmRowProps> = ({
             <button
               key={star}
               type="button"
-              onClick={() => onRatingChange(film.id, film.rating === star ? 0 : star)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onRatingChange(film.id, film.rating === star ? 0 : star);
+              }}
               className="p-0.5 hover:scale-125 transition-transform"
               title={`Оценка ${star} из 5`}
             >
@@ -108,6 +124,7 @@ export const FilmRow: React.FC<FilmRowProps> = ({
             href={film.url}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
             className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-cat-mauve/20 hover:bg-cat-mauve text-cat-mauve hover:text-cat-crust transition-all shrink-0"
             title="Открыть ссылку"
           >
@@ -119,14 +136,20 @@ export const FilmRow: React.FC<FilmRowProps> = ({
         {/* Edit & Delete */}
         <div className="flex items-center gap-1">
           <button
-            onClick={() => onEdit(film)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(film);
+            }}
             className="p-1.5 rounded-lg text-cat-subtext0 hover:text-cat-mauve hover:bg-cat-surface1 transition-colors"
             title="Редактировать"
           >
             <Edit3 className="w-3.5 h-3.5" />
           </button>
           <button
-            onClick={() => onDelete(film.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(film.id);
+            }}
             className="p-1.5 rounded-lg text-cat-subtext0 hover:text-cat-red hover:bg-cat-surface1 transition-colors"
             title="Удалить"
           >
@@ -135,7 +158,6 @@ export const FilmRow: React.FC<FilmRowProps> = ({
         </div>
 
       </div>
-
     </div>
   );
 };

@@ -10,9 +10,9 @@ import {
 } from './api';
 import { Header } from './components/Header';
 import { FilterBar } from './components/FilterBar';
-import { FilmCard } from './components/FilmCard';
 import { FilmRow } from './components/FilmRow';
 import { FilmModal } from './components/FilmModal';
+import { FilmDetailModal } from './components/FilmDetailModal';
 import { RandomModal } from './components/RandomModal';
 import { SplashScreen } from './components/SplashScreen';
 import { Film as FilmIcon, Plus, AlertCircle, RefreshCw } from 'lucide-react';
@@ -34,11 +34,11 @@ export default function App() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<FilterStatus>('all');
   const [sort, setSort] = useState<SortOption>('created_desc');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingFilm, setEditingFilm] = useState<Film | null>(null);
+  const [selectedFilm, setSelectedFilm] = useState<Film | null>(null);
   const [isRandomOpen, setIsRandomOpen] = useState(false);
 
   // Toast
@@ -79,6 +79,10 @@ export default function App() {
       setFilms((prev) =>
         prev.map((f) => (f.id === id ? { ...f, status: newStatus as any } : f))
       );
+      setSelectedFilm((prev) =>
+        prev && prev.id === id ? { ...prev, status: newStatus as any } : prev
+      );
+
       await updateFilmStatus(id, newStatus);
       showToast(
         newStatus === 'watched'
@@ -100,6 +104,10 @@ export default function App() {
       setFilms((prev) =>
         prev.map((f) => (f.id === id ? { ...f, rating } : f))
       );
+      setSelectedFilm((prev) =>
+        prev && prev.id === id ? { ...prev, rating } : prev
+      );
+
       await updateFilmRating(id, rating);
       showToast(rating > 0 ? `Оценка ${rating}/5 сохранена` : 'Оценка снята');
       const res = await fetchFilms({ status, search, sort });
@@ -120,7 +128,8 @@ export default function App() {
     comment?: string;
   }) => {
     if (editingFilm) {
-      await updateFilm(editingFilm.id, data);
+      const updated = await updateFilm(editingFilm.id, data);
+      setSelectedFilm((prev) => (prev && prev.id === updated.id ? updated : prev));
       showToast('Фильм успешно обновлен');
     } else {
       await createFilm(data);
@@ -136,6 +145,9 @@ export default function App() {
     if (!window.confirm(`Вы уверены, что хотите удалить ${title}?`)) return;
 
     try {
+      if (selectedFilm?.id === id) {
+        setSelectedFilm(null);
+      }
       setFilms((prev) => prev.filter((f) => f.id !== id));
       await deleteFilm(id);
       showToast('Фильм удален');
@@ -185,8 +197,6 @@ export default function App() {
           onStatusChange={setStatus}
           sort={sort}
           onSortChange={setSort}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
           stats={stats}
         />
 
@@ -251,30 +261,14 @@ export default function App() {
               </button>
             </div>
           </div>
-        ) : viewMode === 'grid' ? (
-          /* Grid View */
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {films.map((film) => (
-              <FilmCard
-                key={film.id}
-                film={film}
-                onEdit={(f) => {
-                  setEditingFilm(f);
-                  setIsModalOpen(true);
-                }}
-                onDelete={handleDeleteFilm}
-                onToggleStatus={handleToggleStatus}
-                onRatingChange={handleRatingChange}
-              />
-            ))}
-          </div>
         ) : (
-          /* List View */
+          /* Sleek Minimalist List View */
           <div className="space-y-2">
             {films.map((film) => (
               <FilmRow
                 key={film.id}
                 film={film}
+                onSelect={(f) => setSelectedFilm(f)}
                 onEdit={(f) => {
                   setEditingFilm(f);
                   setIsModalOpen(true);
@@ -287,6 +281,20 @@ export default function App() {
           </div>
         )}
       </main>
+
+      {/* Mini-Page Detail Modal (opens when clicking anywhere on a film block) */}
+      <FilmDetailModal
+        film={selectedFilm}
+        isOpen={!!selectedFilm}
+        onClose={() => setSelectedFilm(null)}
+        onEdit={(f) => {
+          setEditingFilm(f);
+          setIsModalOpen(true);
+        }}
+        onDelete={handleDeleteFilm}
+        onToggleStatus={handleToggleStatus}
+        onRatingChange={handleRatingChange}
+      />
 
       {/* Add / Edit Modal */}
       <FilmModal
