@@ -20,6 +20,26 @@ type DB struct {
 	conn *sql.DB
 }
 
+func normalizeText(s string) string {
+	s = strings.ToLower(s)
+	s = strings.ReplaceAll(s, "ё", "е")
+	return strings.TrimSpace(s)
+}
+
+func makeSearchText(title string, year *int, comment string) string {
+	var parts []string
+	if title != "" {
+		parts = append(parts, title)
+	}
+	if year != nil && *year > 0 {
+		parts = append(parts, strconv.Itoa(*year))
+	}
+	if comment != "" {
+		parts = append(parts, comment)
+	}
+	return normalizeText(strings.Join(parts, " "))
+}
+
 func InitDB(dbPath string) (*DB, error) {
 	dir := filepath.Dir(dbPath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
@@ -44,7 +64,7 @@ func InitDB(dbPath string) (*DB, error) {
 		}
 	}
 
-	schema := `
+	baseSchema := `
 	CREATE TABLE IF NOT EXISTS films (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		title TEXT NOT NULL,
@@ -53,18 +73,56 @@ func InitDB(dbPath string) (*DB, error) {
 		status TEXT NOT NULL DEFAULT 'plan',
 		rating INTEGER NOT NULL DEFAULT 0,
 		comment TEXT NOT NULL DEFAULT '',
+		search_text TEXT NOT NULL DEFAULT '',
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);
+	`
 
+	if _, err := conn.Exec(baseSchema); err != nil {
+		return nil, fmt.Errorf("failed to create base schema: %w", err)
+	}
+
+	// Migration: ensure search_text column exists on previously created database
+	_, _ = conn.Exec("ALTER TABLE films ADD COLUMN search_text TEXT NOT NULL DEFAULT '';")
+
+	indexSchema := `
 	CREATE INDEX IF NOT EXISTS idx_films_status ON films(status);
 	CREATE INDEX IF NOT EXISTS idx_films_title ON films(title);
 	CREATE INDEX IF NOT EXISTS idx_films_year ON films(year);
 	CREATE INDEX IF NOT EXISTS idx_films_rating ON films(rating);
+	CREATE INDEX IF NOT EXISTS idx_films_search ON films(search_text);
 	`
 
-	if _, err := conn.Exec(schema); err != nil {
-		return nil, fmt.Errorf("failed to create schema: %w", err)
+	if _, err := conn.Exec(indexSchema); err != nil {
+		return nil, fmt.Errorf("failed to create index schema: %w", err)
+	}
+
+	// Backfill any empty search_text entries
+	rows, err := conn.Query("SELECT id, title, year, comment FROM films WHERE search_text = ''")
+	if err == nil {
+		type backfillItem struct {
+			id int64
+			st string
+		}
+		var items []backfillItem
+		for rows.Next() {
+			var id int64
+			var title, comment string
+			var year sql.NullInt64
+			if err := rows.Scan(&id, &title, &year, &comment); err == nil {
+				var y *int
+				if year.Valid {
+					yi := int(year.Int64)
+					y = &yi
+				}
+				items = append(items, backfillItem{id: id, st: makeSearchText(title, y, comment)})
+			}
+		}
+		rows.Close()
+		for _, it := range items {
+			_, _ = conn.Exec("UPDATE films SET search_text = ? WHERE id = ?", it.st, it.id)
+		}
 	}
 
 	return &DB{conn: conn}, nil
@@ -124,8 +182,8 @@ func (d *DB) SeedFromCSV(csvPath string) error {
 	defer tx.Rollback()
 
 	stmt, err := tx.Prepare(`
-		INSERT INTO films (title, year, url, status, rating, comment)
-		VALUES (?, ?, ?, ?, ?, ?)
+		INSERT INTO films (title, year, url, status, rating, comment, search_text)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
 	`)
 	if err != nil {
 		return err
@@ -185,7 +243,8 @@ func (d *DB) SeedFromCSV(csvPath string) error {
 			}
 		}
 
-		if _, err := stmt.Exec(title, year, url, status, rating, comment); err != nil {
+		st := makeSearchText(title, year, comment)
+		if _, err := stmt.Exec(title, year, url, status, rating, comment, st); err != nil {
 			return fmt.Errorf("failed to insert film '%s': %w", title, err)
 		}
 		imported++
@@ -228,9 +287,11 @@ func (d *DB) ListFilms(status, search, sort string) ([]models.Film, models.Stats
 	}
 
 	if search != "" {
-		where = append(where, "(LOWER(title) LIKE ? OR LOWER(comment) LIKE ?)")
-		pattern := "%" + strings.ToLower(search) + "%"
-		args = append(args, pattern, pattern)
+		words := strings.Fields(normalizeText(search))
+		for _, w := range words {
+			where = append(where, "search_text LIKE ?")
+			args = append(args, "%"+w+"%")
+		}
 	}
 
 	whereClause := ""
@@ -241,17 +302,17 @@ func (d *DB) ListFilms(status, search, sort string) ([]models.Film, models.Stats
 	orderBy := "id DESC"
 	switch sort {
 	case "title_asc":
-		orderBy = "title COLLATE NOCASE ASC"
+		orderBy = "search_text ASC"
 	case "title_desc":
-		orderBy = "title COLLATE NOCASE DESC"
+		orderBy = "search_text DESC"
 	case "year_desc":
-		orderBy = "year DESC NULLS LAST, title COLLATE NOCASE ASC"
+		orderBy = "year DESC NULLS LAST, search_text ASC"
 	case "year_asc":
-		orderBy = "year ASC NULLS LAST, title COLLATE NOCASE ASC"
+		orderBy = "year ASC NULLS LAST, search_text ASC"
 	case "rating_desc":
-		orderBy = "rating DESC, title COLLATE NOCASE ASC"
+		orderBy = "rating DESC, search_text ASC"
 	case "rating_asc":
-		orderBy = "rating ASC, title COLLATE NOCASE ASC"
+		orderBy = "rating ASC, search_text ASC"
 	case "oldest":
 		orderBy = "id ASC"
 	default:
@@ -321,10 +382,11 @@ func (d *DB) CreateFilm(req models.CreateFilmRequest) (*models.Film, error) {
 		req.Status = "plan"
 	}
 
+	st := makeSearchText(req.Title, req.Year, req.Comment)
 	res, err := d.conn.Exec(`
-		INSERT INTO films (title, year, url, status, rating, comment, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-	`, strings.TrimSpace(req.Title), req.Year, strings.TrimSpace(req.URL), req.Status, req.Rating, strings.TrimSpace(req.Comment))
+		INSERT INTO films (title, year, url, status, rating, comment, search_text, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+	`, strings.TrimSpace(req.Title), req.Year, strings.TrimSpace(req.URL), req.Status, req.Rating, strings.TrimSpace(req.Comment), st)
 	if err != nil {
 		return nil, err
 	}
@@ -345,11 +407,12 @@ func (d *DB) UpdateFilm(id int64, req models.UpdateFilmRequest) (*models.Film, e
 		req.Status = "plan"
 	}
 
+	st := makeSearchText(req.Title, req.Year, req.Comment)
 	res, err := d.conn.Exec(`
 		UPDATE films
-		SET title = ?, year = ?, url = ?, status = ?, rating = ?, comment = ?, updated_at = CURRENT_TIMESTAMP
+		SET title = ?, year = ?, url = ?, status = ?, rating = ?, comment = ?, search_text = ?, updated_at = CURRENT_TIMESTAMP
 		WHERE id = ?
-	`, strings.TrimSpace(req.Title), req.Year, strings.TrimSpace(req.URL), req.Status, req.Rating, strings.TrimSpace(req.Comment), id)
+	`, strings.TrimSpace(req.Title), req.Year, strings.TrimSpace(req.URL), req.Status, req.Rating, strings.TrimSpace(req.Comment), st, id)
 	if err != nil {
 		return nil, err
 	}
