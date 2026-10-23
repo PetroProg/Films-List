@@ -15,6 +15,7 @@ import { FilmModal } from './components/FilmModal';
 import { FilmDetailModal } from './components/FilmDetailModal';
 import { RandomModal } from './components/RandomModal';
 import { SplashScreen } from './components/SplashScreen';
+import { ConfirmModal } from './components/ConfirmModal';
 import { Film as FilmIcon, Plus, AlertCircle, RefreshCw } from 'lucide-react';
 
 export default function App() {
@@ -40,6 +41,7 @@ export default function App() {
   const [editingFilm, setEditingFilm] = useState<Film | null>(null);
   const [selectedFilm, setSelectedFilm] = useState<Film | null>(null);
   const [isRandomOpen, setIsRandomOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; title: string } | null>(null);
 
   // Toast
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
@@ -138,11 +140,17 @@ export default function App() {
     loadData();
   };
 
-  // Delete handler
-  const handleDeleteFilm = async (id: number) => {
+  // Delete initiation (opens custom popup)
+  const promptDeleteFilm = (id: number) => {
     const target = films.find((f) => f.id === id);
     const title = target ? `«${target.title}»` : 'фильм';
-    if (!window.confirm(`Вы уверены, что хотите удалить ${title}?`)) return;
+    setDeleteTarget({ id, title });
+  };
+
+  // Confirm delete execution
+  const confirmDeleteFilm = async () => {
+    if (!deleteTarget) return;
+    const { id } = deleteTarget;
 
     try {
       if (selectedFilm?.id === id) {
@@ -156,6 +164,8 @@ export default function App() {
     } catch {
       showToast('Не удалось удалить фильм', 'error');
       loadData();
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -273,7 +283,7 @@ export default function App() {
                   setEditingFilm(f);
                   setIsModalOpen(true);
                 }}
-                onDelete={handleDeleteFilm}
+                onDelete={promptDeleteFilm}
                 onToggleStatus={handleToggleStatus}
                 onRatingChange={handleRatingChange}
               />
@@ -291,7 +301,7 @@ export default function App() {
           setEditingFilm(f);
           setIsModalOpen(true);
         }}
-        onDelete={handleDeleteFilm}
+        onDelete={promptDeleteFilm}
         onToggleStatus={handleToggleStatus}
         onRatingChange={handleRatingChange}
       />
@@ -314,6 +324,18 @@ export default function App() {
         onMarkWatched={async (id) => {
           await handleToggleStatus(id, 'plan');
         }}
+      />
+
+      {/* Custom Catppuccin Confirm Modal for deletion */}
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        title="Удалить фильм?"
+        message={`Вы уверены, что хотите удалить ${deleteTarget?.title}? Это действие нельзя будет отменить.`}
+        confirmText="Удалить"
+        cancelText="Отмена"
+        variant="danger"
+        onConfirm={confirmDeleteFilm}
+        onClose={() => setDeleteTarget(null)}
       />
     </div>
   );
